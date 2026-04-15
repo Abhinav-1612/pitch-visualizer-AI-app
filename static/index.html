@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Pitch Visualizer — AI Storyboard Generator</title>
+    <meta name="description" content="Transform your sales narrative into a compelling visual storyboard using AI. Paste your story and watch it come to life, scene by scene.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="bg-blobs">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+    </div>
+
+    <nav class="topbar">
+        <div class="topbar-brand">
+            <span class="topbar-icon">✦</span>
+            <span>Pitch Visualizer</span>
+        </div>
+        <div class="topbar-right">
+            <span class="topbar-label">Theme:</span>
+            <div class="theme-switcher" id="themeSwitcher">
+                <button class="theme-dot active" data-theme="purple" style="background:#8b5cf6" title="Purple" onclick="setTheme('purple')"></button>
+                <button class="theme-dot" data-theme="blue" style="background:#3b82f6" title="Blue" onclick="setTheme('blue')"></button>
+                <button class="theme-dot" data-theme="green" style="background:#10b981" title="Emerald" onclick="setTheme('green')"></button>
+                <button class="theme-dot" data-theme="rose" style="background:#f43f5e" title="Rose" onclick="setTheme('rose')"></button>
+                <button class="theme-dot" data-theme="amber" style="background:#f59e0b" title="Amber" onclick="setTheme('amber')"></button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <div class="badge">✦ AI-Powered Storyboard</div>
+            <h1>The Pitch Visualizer</h1>
+            <p>Paste a customer success story and instantly receive a visual storyboard — scene by scene, powered by Gemini AI + Stable Diffusion.</p>
+        </header>
+
+        <section class="input-panel" id="inputPanel">
+            <div class="panel-header">
+                <span class="panel-title">📝 Your Story</span>
+                <span class="char-count" id="charCount">0 / 5000</span>
+            </div>
+
+            <div class="textarea-wrapper">
+                <textarea
+                    id="storyText"
+                    placeholder="Paste your customer success story or pitch narrative here…&#10;&#10;Example: Acme Corp was drowning in customer complaints. After deploying our AI platform, their support team resolved tickets 3x faster, customer satisfaction soared to 98%, and they saved $2M in operational costs — becoming the industry benchmark for excellence."
+                    spellcheck="false"
+                ></textarea>
+            </div>
+
+            <div class="controls">
+                <div class="selector-group">
+                    <label for="llmSelect">🧠 AI Model</label>
+                    <div class="select-wrapper">
+                        <select id="llmSelect">
+                            <option value="gemini-2.5-flash" selected>Gemini 2.5 Flash ⚡</option>
+                            <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
+                            <option value="gemini-flash-latest">Gemini Flash Latest</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="selector-group">
+                    <label for="styleSelect">🎨 Visual Style</label>
+                    <div class="select-wrapper">
+                        <select id="styleSelect">
+                            <option value="Cinematic Concept Art">🎬 Cinematic Concept Art</option>
+                            <option value="Photorealistic">📸 Photorealistic</option>
+                            <option value="Watercolor Illustration">🎨 Watercolor Illustration</option>
+                            <option value="Cyberpunk Digital Art">🌆 Cyberpunk Digital Art</option>
+                            <option value="Studio Ghibli Anime">🌸 Studio Ghibli Anime</option>
+                            <option value="Minimalist Vector Art">⬡ Minimalist Vector Art</option>
+                            <option value="Dark Fantasy Oil Painting">🏰 Dark Fantasy Oil Painting</option>
+                            <option value="Retro Futurism">🚀 Retro Futurism</option>
+                            <option value="Comic Book Sketch">✏️ Comic Book Sketch</option>
+                            <option value="Graphic Novel Ink">📖 Graphic Novel Ink</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="generateBtn" class="generate-btn" onclick="generateStoryboard()">
+                    <span class="btn-icon">⚡</span>
+                    <span class="btn-text">Generate Storyboard</span>
+                </button>
+            </div>
+        </section>
+
+        <div id="statusBar" class="status-bar" style="display:none">
+            <div class="status-spinner"></div>
+            <span id="statusText">Initializing...</span>
+        </div>
+
+        <div id="storyboardGrid" class="storyboard"></div>
+
+        <div id="errorBanner" class="error-banner" style="display:none">
+            <span class="error-icon">⚠️</span>
+            <div>
+                <strong>Generation Failed</strong>
+                <p id="errorText"></p>
+            </div>
+        </div>
+    </div>
+
+    <footer class="site-footer">
+        <p>Built with Gemini AI + Hugging Face Diffusion Models · The Pitch Visualizer</p>
+    </footer>
+
+    <script>
+        const moodThemeMap = {
+            triumph:   'amber',
+            struggle:  'blue',
+            adventure: 'green',
+            dark:      'purple',
+            warmth:    'rose',
+        };
+
+        const moodLabels = {
+            triumph:   '🏆 Triumph',
+            struggle:  '💪 Struggle',
+            adventure: '🌍 Adventure',
+            dark:      '🌑 Dark',
+            warmth:    '❤️ Warmth',
+        };
+
+        function applyMoodTheme(mood) {
+            const theme = moodThemeMap[mood] || 'purple';
+            setTheme(theme);
+            showToast(`Mood detected: ${moodLabels[mood] || mood} — theme updated!`);
+        }
+
+        function showToast(message) {
+            let toast = document.getElementById('moodToast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'moodToast';
+                toast.style.cssText = `
+                    position:fixed; bottom:2rem; left:50%; transform:translateX(-50%);
+                    background:var(--glass-bg); border:1px solid var(--glass-border);
+                    backdrop-filter:blur(16px); padding:0.75rem 1.75rem;
+                    border-radius:999px; color:var(--text-main); font-size:0.88rem;
+                    font-weight:600; z-index:999; opacity:0; transition:opacity 0.4s ease;
+                    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+                    font-family: inherit;
+                `;
+                document.body.appendChild(toast);
+            }
+            toast.textContent = message;
+            toast.style.opacity = '1';
+            clearTimeout(toast._timer);
+            toast._timer = setTimeout(() => { toast.style.opacity = '0'; }, 3500);
+        }
+
+        const themes = {
+            purple: { accent: '#8b5cf6', blue: '#3b82f6', pink: '#ec4899', glow: 'rgba(139,92,246,0.5)' },
+            blue:   { accent: '#3b82f6', blue: '#06b6d4', pink: '#8b5cf6', glow: 'rgba(59,130,246,0.5)' },
+            green:  { accent: '#10b981', blue: '#3b82f6', pink: '#06b6d4', glow: 'rgba(16,185,129,0.5)' },
+            rose:   { accent: '#f43f5e', blue: '#f97316', pink: '#ec4899', glow: 'rgba(244,63,94,0.5)'  },
+            amber:  { accent: '#f59e0b', blue: '#f97316', pink: '#ef4444', glow: 'rgba(245,158,11,0.5)' },
+        };
+
+        function setTheme(name) {
+            const t = themes[name];
+            if (!t) return;
+            const r = document.documentElement.style;
+            r.setProperty('--accent-purple', t.accent);
+            r.setProperty('--accent-blue',   t.blue);
+            r.setProperty('--accent-pink',    t.pink);
+            r.setProperty('--accent-glow',    t.glow);
+            document.querySelectorAll('.theme-dot').forEach(d => {
+                d.classList.toggle('active', d.dataset.theme === name);
+            });
+            localStorage.setItem('pv-theme', name);
+        }
+
+        const savedTheme = localStorage.getItem('pv-theme') || 'purple';
+        setTheme(savedTheme);
+
+        const textarea = document.getElementById('storyText');
+        const charCount = document.getElementById('charCount');
+        textarea.addEventListener('input', () => {
+            const len = textarea.value.length;
+            charCount.textContent = `${len} / 5000`;
+            charCount.style.color = len > 4800 ? '#f87171' : 'var(--text-muted)';
+            if (len > 5000) textarea.value = textarea.value.slice(0, 5000);
+        });
+
+        async function generateStoryboard() {
+            const storyText = textarea.value.trim();
+            const style     = document.getElementById('styleSelect').value;
+            const llm_model = document.getElementById('llmSelect').value;
+            const btn       = document.getElementById('generateBtn');
+            const statusBar = document.getElementById('statusBar');
+            const grid      = document.getElementById('storyboardGrid');
+            const errorBanner = document.getElementById('errorBanner');
+
+            if (!storyText) {
+                shakeElement(document.getElementById('inputPanel'));
+                return;
+            }
+
+            btn.disabled = true;
+            btn.querySelector('.btn-text').textContent = 'Generating…';
+            grid.innerHTML = '';
+            grid.classList.remove('visible');
+            errorBanner.style.display = 'none';
+            statusBar.style.display = 'flex';
+            setStatus(`Sending story to ${llm_model}…`);
+
+            try {
+                const response = await fetch('/api/generate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ story_text: storyText, style, llm_model })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || `HTTP ${response.status}`);
+                }
+
+                const reader  = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = '';
+                let panelCount = 0;
+
+                while (true) {
+                    const { value, done } = await reader.read();
+                    if (done) break;
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split('\n');
+                    buffer = lines.pop();
+
+                    for (const line of lines) {
+                        if (!line.trim()) continue;
+                        try {
+                            const msg = JSON.parse(line);
+                            handleMessage(msg, grid);
+                            if (msg.type === 'panel') {
+                                panelCount++;
+                                if (panelCount === 1) grid.classList.add('visible');
+                            }
+                        } catch (e) { console.warn('Bad JSON line:', line); }
+                    }
+                }
+
+                if (buffer.trim()) {
+                    try { handleMessage(JSON.parse(buffer), grid); } catch (_) {}
+                }
+
+                if (panelCount > 0) {
+                    setStatus(`✓ Done — ${panelCount} scenes generated!`);
+                    setTimeout(() => { statusBar.style.display = 'none'; }, 3000);
+                    grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+
+            } catch (err) {
+                showError(err.message || 'An unexpected error occurred.');
+                statusBar.style.display = 'none';
+            } finally {
+                btn.disabled = false;
+                btn.querySelector('.btn-text').textContent = 'Generate Storyboard';
+            }
+        }
+
+        function handleMessage(msg, grid) {
+            if      (msg.type === 'status') setStatus(msg.message);
+            else if (msg.type === 'panel')  appendPanel(msg.panel, msg.index, grid);
+            else if (msg.type === 'mood')   applyMoodTheme(msg.mood);
+            else if (msg.type === 'error')  showError(msg.message);
+        }
+
+        function setStatus(text) {
+            document.getElementById('statusText').textContent = text;
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('errorBanner');
+            document.getElementById('errorText').textContent = msg;
+            banner.style.display = 'flex';
+        }
+
+        function appendPanel(panel, index, grid) {
+            const card = document.createElement('div');
+            card.className = 'panel-card';
+            card.style.animationDelay = `${index * 0.12}s`;
+            card.innerHTML = `
+                <div class="panel-number">Scene ${index + 1}</div>
+                <div class="panel-img-wrapper">
+                    <img
+                        src="${panel.image_url}"
+                        alt="Storyboard Scene ${index + 1}"
+                        class="panel-img"
+                        loading="lazy"
+                        onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22400%22 height=%22300%22><rect fill=%22%231e293b%22 width=%22400%22 height=%22300%22/><text x=%22200%22 y=%22150%22 fill=%22%238b5cf6%22 text-anchor=%22middle%22 font-size=%2218%22>Image failed to load</text></svg>'"
+                    >
+                    <div class="panel-overlay">
+                        <p class="panel-prompt-preview">${escapeHtml(panel.prompt)}</p>
+                    </div>
+                </div>
+                <div class="panel-content">
+                    <p class="panel-text">${escapeHtml(panel.text)}</p>
+                </div>
+            `;
+            grid.appendChild(card);
+        }
+
+        function escapeHtml(str) {
+            const d = document.createElement('div');
+            d.appendChild(document.createTextNode(str));
+            return d.innerHTML;
+        }
+
+        function shakeElement(el) {
+            el.classList.add('shake');
+            setTimeout(() => el.classList.remove('shake'), 600);
+        }
+    </script>
+</body>
+</html>
