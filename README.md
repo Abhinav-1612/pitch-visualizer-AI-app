@@ -37,8 +37,8 @@ No design skills needed. No manual prompt writing. You just paste your text, pic
 ### 1. Get the code
 
 ```bash
-git clone <your-repo-url>
-cd pitch-visualizer
+git clone https://github.com/Abhinav-1612/pitch-visualizer-AI-app.git
+cd pitch-visualizer-AI-app
 ```
 
 ### 2. Create a virtual environment
