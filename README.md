@@ -170,7 +170,7 @@ The streaming architecture also helps with perceived performance — panels appe
 
 ---
 
-## API Rate Limits (important for judges)
+## API Rate Limits 
 
 Both APIs used here are free tier:
 
