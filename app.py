@@ -22,7 +22,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
-hf_token = os.getenv("HF_TOKEN")
+hf_token = os.getenv("HF_API_TOKEN") or os.getenv("HF_TOKEN")
 
 app = FastAPI(title="The Pitch Visualizer")
 
@@ -42,8 +42,8 @@ os.makedirs("static/images", exist_ok=True)
 HF_MODELS = [
     "black-forest-labs/FLUX.1-schnell",
     "stabilityai/stable-diffusion-xl-base-1.0",
-    "prompthero/openjourney",
-    "Lykon/dreamshaper-8"
+    "stabilityai/stable-diffusion-2-1",
+    "runwayml/stable-diffusion-v1-5"
 ]
 
 
@@ -132,6 +132,7 @@ def generate_image_hf(prompt: str, seed: int, index: int) -> str:
 
     for model_id in HF_MODELS:
         try:
+            print(f"[IMG] Trying model: {model_id} for scene {index}", flush=True)
             hf_client = InferenceClient(model=model_id, token=hf_token)
             image = hf_client.text_to_image(
                 prompt,
@@ -140,9 +141,11 @@ def generate_image_hf(prompt: str, seed: int, index: int) -> str:
             )
             image_path = f"static/images/scene_{index}_{seed}.png"
             image.save(image_path)
+            print(f"[IMG] Success with {model_id} for scene {index}", flush=True)
             return f"/images/scene_{index}_{seed}.png"
         except Exception as e:
             last_error = str(e)
+            print(f"[IMG] FAILED {model_id} for scene {index}: {last_error}", file=sys.stderr, flush=True)
             time.sleep(2)
             continue
 

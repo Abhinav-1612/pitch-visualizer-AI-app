@@ -5,4 +5,4 @@ requests
 python-dotenv
 pydantic
 huggingface-hub
-Pillow
+Pillow
