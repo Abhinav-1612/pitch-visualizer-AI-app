@@ -4,6 +4,9 @@ import json
 import random
 import time
 from huggingface_hub import InferenceClient
+from dotenv import load_dotenv
+
+load_dotenv()
 
 if sys.stdout.encoding and sys.stdout.encoding.lower() != 'utf-8':
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -34,12 +37,10 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from dotenv import load_dotenv
-
-load_dotenv()
 
 client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 hf_token = os.getenv("HF_API_TOKEN") or os.getenv("HF_TOKEN")
+
 
 app = FastAPI(title="The Pitch Visualizer")
 
