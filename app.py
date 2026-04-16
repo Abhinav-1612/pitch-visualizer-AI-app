@@ -12,6 +12,23 @@ if sys.stderr.encoding and sys.stderr.encoding.lower() != 'utf-8':
 
 from google import genai
 from google.genai import types
+
+try:
+    from groq import Groq
+    groq_client = Groq(api_key=os.getenv("GROQ_API_KEY", ""))
+except ImportError:
+    groq_client = None
+
+def extract_json_from_text(text: str) -> dict:
+    try:
+        start = text.find('{')
+        end = text.rfind('}') + 1
+        if start != -1 and end != 0:
+            return json.loads(text[start:end])
+        return json.loads(text)
+    except json.JSONDecodeError:
+        raise Exception(f"Failed to parse JSON from LLM: {text[:100]}...")
+
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
@@ -100,6 +117,25 @@ Respond ONLY with a valid JSON object — no markdown fences, no extra text:
     ]
 }}
 """
+
+    if llm_model.startswith("groq-"):
+        if not groq_client:
+            raise Exception("Groq package not installed. Run: pip install groq")
+        if not os.getenv("GROQ_API_KEY"):
+            raise Exception("GROQ_API_KEY is not set in your .env file! Go to console.groq.com to get one.")
+        
+        try:
+            model_id = llm_model.replace("groq-", "")
+            response = groq_client.chat.completions.create(
+                model=model_id,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                response_format={"type": "json_object"}
+            )
+            return extract_json_from_text(response.choices[0].message.content)
+        except Exception as e:
+            print(f"Groq failed: {e}. Falling back to Gemini...", file=sys.stderr)
+            # If Groq fails, we just log it and gracefully fall back into the Gemini chain below!
 
     gemini_models = [
         llm_model,
