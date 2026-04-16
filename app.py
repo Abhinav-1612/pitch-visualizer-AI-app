@@ -104,8 +104,8 @@ Respond ONLY with a valid JSON object — no markdown fences, no extra text:
     gemini_models = [
         llm_model,
         "gemini-2.5-flash",
+        "gemini-2.0-flash-lite",
         "gemini-1.5-flash",
-        "gemini-1.5-pro",
         "gemini-2.0-flash",
     ]
     seen = set()
