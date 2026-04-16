@@ -13,6 +13,8 @@ static/images/
 *.jpg
 *.jpeg
 *.webp
+!docs/screenshots/*.png
+!docs/screenshots/*.jpg
 .DS_Store
 Thumbs.db
 *.log
