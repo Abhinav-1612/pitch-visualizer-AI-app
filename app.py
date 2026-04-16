@@ -121,29 +121,30 @@ Respond ONLY with a valid JSON object — no markdown fences, no extra text:
     if llm_model.startswith("groq-"):
         if not groq_client:
             raise Exception("Groq package not installed. Run: pip install groq")
-        if not os.getenv("GROQ_API_KEY"):
-            raise Exception("GROQ_API_KEY is not set in your .env file! Go to console.groq.com to get one.")
-        
-        try:
-            model_id = llm_model.replace("groq-", "")
-            response = groq_client.chat.completions.create(
-                model=model_id,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.7,
-                response_format={"type": "json_object"}
+        groq_api_key = os.getenv("GROQ_API_KEY", "")
+        if not groq_api_key:
+            raise Exception(
+                "GROQ_API_KEY missing from .env! "
+                "Get a free key at console.groq.com, then add: GROQ_API_KEY=gsk_... to your .env file."
             )
-            return extract_json_from_text(response.choices[0].message.content)
-        except Exception as e:
-            print(f"Groq failed: {e}. Falling back to Gemini...", file=sys.stderr)
-            # If Groq fails, we just log it and gracefully fall back into the Gemini chain below!
+        model_id = llm_model.replace("groq-", "")
+        print(f"[LLM] Using Groq model: {model_id}", flush=True)
+        response = groq_client.chat.completions.create(
+            model=model_id,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7,
+            response_format={"type": "json_object"}
+        )
+        return extract_json_from_text(response.choices[0].message.content)
 
     gemini_models = [
-        llm_model,
+        llm_model if not llm_model.startswith("groq-") else None,
         "gemini-2.5-flash",
         "gemini-2.0-flash-lite",
         "gemini-1.5-flash",
         "gemini-2.0-flash",
     ]
+    gemini_models = [m for m in gemini_models if m]
     seen = set()
     gemini_models = [m for m in gemini_models if not (m in seen or seen.add(m))]
 
